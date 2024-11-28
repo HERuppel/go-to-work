@@ -27,11 +27,11 @@ func Load() {
 	}
 
 	DatabaseConnectionString = fmt.Sprintf("%s://%s:%s@%s/%s?sslmode=disable",
-		os.Getenv("DB_TYPE"),
-		os.Getenv("DB_USER"),
-		os.Getenv("DB_PASSWORD"),
-		os.Getenv("DB_HOST"),
-		os.Getenv("DB_NAME"),
+		os.Getenv("POSTGRES_TYPE"),
+		os.Getenv("POSTGRES_USER"),
+		os.Getenv("POSTGRES_PASSWORD"),
+		os.Getenv("POSTGRES_HOST"),
+		os.Getenv("POSTGRES_NAME"),
 	)
 
 	SecretKey = []byte(os.Getenv("SECRET_KEY"))

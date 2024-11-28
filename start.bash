@@ -1,9 +1,11 @@
 #!/bin/bash
 
 # just to make it easier as example
-export DB_USER=postgres
-export DB_PASSWORD=postgres
-export DB_NAME=go-to-work
+export POSTGRES_HOST=localhost
+export POSTGRES_PORT=5433
+export POSTGRES_USER=postgres
+export POSTGRES_PASSWORD=postgres
+export POSTGRES_NAME=go-to-work
 
 CONTAINER_NAME=go_to_work_db
 
