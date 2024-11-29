@@ -11,7 +11,7 @@ type AppContainer struct {
 	UserController *controllers.UserController
 }
 
-func NewAppContainer(databaseUrl string) (*AppContainer, error) {
+func NewAppContainer() (*AppContainer, error) {
 	pool, err := database.NewDatabasePool()
 	if err != nil {
 		return nil, err

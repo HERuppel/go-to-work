@@ -10,7 +10,7 @@ import (
 func main() {
 	config.Load()
 
-	container, err := app.NewAppContainer(config.DatabaseConnectionString)
+	container, err := app.NewAppContainer()
 	if err != nil {
 		log.Fatalf("Failed to initialize app: %v\n", err)
 	}
