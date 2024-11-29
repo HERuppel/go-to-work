@@ -26,11 +26,12 @@ func Load() {
 		Port = "3333"
 	}
 
-	DatabaseConnectionString = fmt.Sprintf("%s://%s:%s@%s/%s?sslmode=disable",
+	DatabaseConnectionString = fmt.Sprintf("%s://%s:%s@%s:%s/%s?sslmode=disable",
 		os.Getenv("POSTGRES_TYPE"),
 		os.Getenv("POSTGRES_USER"),
 		os.Getenv("POSTGRES_PASSWORD"),
 		os.Getenv("POSTGRES_HOST"),
+		os.Getenv("POSTGRES_PORT"),
 		os.Getenv("POSTGRES_NAME"),
 	)
 
