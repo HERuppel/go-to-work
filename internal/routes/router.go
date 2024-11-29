@@ -2,19 +2,24 @@ package routes
 
 import (
 	"go-to-work/internal/config"
+	"go-to-work/internal/controllers"
 
 	"github.com/gin-gonic/gin"
 )
 
+type ControllerContainer struct {
+	UserController *controllers.UserController
+}
+
 var router = gin.Default()
 
-func Initialize() {
-	getRoutes()
+func Initialize(container *ControllerContainer) {
+	getRoutes(container)
 	router.Run(":" + config.Port)
 }
 
-func getRoutes() {
+func getRoutes(container *ControllerContainer) {
 	v1 := router.Group("/v1")
 
-	addAuthRoutes(v1)
+	addUserRoutes(v1, container.UserController)
 }
