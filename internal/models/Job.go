@@ -12,7 +12,7 @@ const (
 )
 
 type Job struct {
-	ID          uint      `json:"id"`
+	ID          uint64    `json:"id"`
 	Title       string    `json:"title"`
 	Description string    `json:"description"`
 	Type        JobType   `json:"type"`
@@ -21,5 +21,5 @@ type Job struct {
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 	IsActive    bool      `json:"is_active"`
-	RecruiterId uint      `json:"recruiter_id"`
+	RecruiterId uint64    `json:"recruiter_id"`
 }

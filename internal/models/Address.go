@@ -1,7 +1,7 @@
 package models
 
 type Address struct {
-	ID         uint   `json:"id"`
+	ID         uint64 `json:"id"`
 	Country    string `json:"country"`
 	Uf         string `json:"uf"`
 	Street     string `json:"street"`
