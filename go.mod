@@ -3,6 +3,7 @@ module go-to-work
 go 1.23.2
 
 require (
+	github.com/badoux/checkmail v1.2.4
 	github.com/gin-gonic/gin v1.10.0
 	github.com/jackc/pgx/v5 v5.7.1
 	github.com/joho/godotenv v1.5.1
