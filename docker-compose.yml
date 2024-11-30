@@ -11,6 +11,29 @@ services:
       - "5433:5432"
     volumes:
       - db:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+  api:
+    container_name: go_to_work_app
+    image: go_to_work_api
+    build: .
+    ports:
+      - 3333:3333
+    networks:
+      - app-network
+    depends_on:
+      - go_to_work_db
+    environment:
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_PORT=${POSTGRES_PORT}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_NAME=${POSTGRES_NAME}
+
+networks:
+  app-network:
+    driver: bridge
 
 volumes:
   db:

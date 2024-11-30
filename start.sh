@@ -1,8 +1,9 @@
 #!/bin/bash
 
+# only if you want to run the api locally with a db container
 # just to make it easier as example
 export POSTGRES_HOST=localhost
-export POSTGRES_PORT=5433
+export POSTGRES_PORT=5432
 export POSTGRES_USER=postgres
 export POSTGRES_PASSWORD=postgres
 export POSTGRES_NAME=go-to-work
