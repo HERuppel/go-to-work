@@ -9,6 +9,7 @@ import (
 
 type AppContainer struct {
 	UserController *controllers.UserController
+	AuthController *controllers.AuthController
 }
 
 func NewAppContainer() (*AppContainer, error) {
@@ -17,11 +18,21 @@ func NewAppContainer() (*AppContainer, error) {
 		return nil, err
 	}
 
+	//Address
+	addressRepository := repositories.NewAddressRepository(pool)
+
+	// Auth
+	authRepository := repositories.NewAuthRepository(pool)
+	authUseCase := usecases.NewAuthUseCase(authRepository, addressRepository)
+	authController := controllers.NewAuthController(authUseCase)
+
+	// User
 	userRepository := repositories.NewUserRepository(pool)
 	userUseCase := usecases.NewUserUseCase(userRepository)
 	userController := controllers.NewUserController(userUseCase)
 
 	return &AppContainer{
 		UserController: userController,
+		AuthController: authController,
 	}, nil
 }
