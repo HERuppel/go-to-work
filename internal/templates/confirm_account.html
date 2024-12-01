@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+  <title>Confirm Email</title>
+  <style>
+    .text {
+      font-size: 16px;
+      font-weight: 400;
+      color: #202020;
+      text-align: center;
+    }
+
+    .text span {
+      font-size: 18px;
+      font-weight: bold;
+      color: #D54D00;
+    }
+
+    .header {
+      background-color: #FFF;
+      margin: auto;
+      width: 100%;
+      padding: 50px 0;
+    }
+
+    .header h3 {
+      font-size: 20px;
+      color: #202020;
+      text-align: center;
+    }
+
+    .header span {
+      color: #D54D00;
+      font-size: 20px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="header">
+    <h3>Seja bem-vindo ao <span>Go To Work</span>, {{.Name}}!</h3>
+  </div>
+  <p class="text">
+    Insira o código:
+    <span>{{.PinCode}}</span>
+    no aplicativo para confirmar seu e-mail.
+  </p>
+</body>
+
+</html>

@@ -1,10 +1,14 @@
 package app
 
 import (
+	"go-to-work/internal/config"
 	"go-to-work/internal/controllers"
 	"go-to-work/internal/database"
 	"go-to-work/internal/repositories"
+	"go-to-work/internal/services"
 	usecases "go-to-work/internal/useCases"
+	"log"
+	"path/filepath"
 )
 
 type AppContainer struct {
@@ -18,12 +22,22 @@ func NewAppContainer() (*AppContainer, error) {
 		return nil, err
 	}
 
-	//Address
-	addressRepository := repositories.NewAddressRepository(pool)
+	templatePath, err := filepath.Abs("internal/templates")
+	if err != nil {
+		log.Fatalf("FAILED_TO_RESOLVE_TEMPLATE_PATH: %v", err)
+	}
+
+	emailService := services.NewEmailService(
+		config.SmtpHost,
+		config.SmtpPort,
+		config.SmtpEmail,
+		config.SmtpPassword,
+		config.SmtpEmail,
+		templatePath,
+	)
 
 	// Auth
-	authRepository := repositories.NewAuthRepository(pool)
-	authUseCase := usecases.NewAuthUseCase(authRepository, addressRepository)
+	authUseCase := usecases.NewAuthUseCase(pool, emailService)
 	authController := controllers.NewAuthController(authUseCase)
 
 	// User

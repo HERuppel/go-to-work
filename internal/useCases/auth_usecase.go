@@ -2,25 +2,49 @@ package usecases
 
 import (
 	"context"
+	"fmt"
 	"go-to-work/internal/models"
 	"go-to-work/internal/repositories"
 	"go-to-work/internal/security"
+	"go-to-work/internal/services"
 	"strconv"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type AuthUseCase struct {
-	authRepository    *repositories.AuthRepository
-	addressRepository *repositories.AddressRepository
+	pool         *pgxpool.Pool
+	emailService services.EmailService
 }
 
-func NewAuthUseCase(authRepository *repositories.AuthRepository, addressRepository *repositories.AddressRepository) *AuthUseCase {
+func NewAuthUseCase(pool *pgxpool.Pool, emailService services.EmailService) *AuthUseCase {
 	return &AuthUseCase{
-		authRepository:    authRepository,
-		addressRepository: addressRepository,
+		pool:         pool,
+		emailService: emailService,
 	}
 }
 
 func (authUseCase *AuthUseCase) SignUp(ctx context.Context, user models.User) (models.User, error) {
+	tx, err := authUseCase.pool.Begin(ctx)
+	if err != nil {
+		return models.User{}, fmt.Errorf("ERROR_STARTING_TRANSACTION: %w", err)
+	}
+
+	defer func() {
+		if err != nil {
+			if rollbackErr := tx.Rollback(ctx); rollbackErr != nil {
+				fmt.Println("ROLLBACK_ERROR")
+			}
+		} else {
+			if commitErr := tx.Commit(ctx); commitErr != nil {
+				fmt.Println("COMMIT_ERROR")
+			}
+		}
+	}()
+
+	authRepository := repositories.NewAuthRepository(tx)
+	addressRepository := repositories.NewAddressRepository(tx)
+
 	if err := user.Validate(); err != nil {
 		return models.User{}, err
 	}
@@ -36,10 +60,19 @@ func (authUseCase *AuthUseCase) SignUp(ctx context.Context, user models.User) (m
 
 	user.PinCode = strconv.Itoa(pinCode)
 
-	user.Address, err = authUseCase.addressRepository.Create(ctx, user.Address)
+	user.Address, err = addressRepository.Create(ctx, user.Address)
 	if err != nil {
 		return models.User{}, err
 	}
 
-	return authUseCase.authRepository.SignUp(ctx, user)
+	createdUser, err := authRepository.SignUp(ctx, user)
+	if err != nil {
+		return models.User{}, err
+	}
+
+	if err = authUseCase.emailService.SendConfirmEmail(createdUser.Email, createdUser.Name, createdUser.PinCode); err != nil {
+		return models.User{}, err
+	}
+
+	return createdUser, nil
 }

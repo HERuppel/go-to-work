@@ -4,16 +4,16 @@ import (
 	"context"
 	"go-to-work/internal/models"
 
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5"
 )
 
 type AddressRepository struct {
-	pool *pgxpool.Pool
+	tx pgx.Tx
 }
 
-func NewAddressRepository(pool *pgxpool.Pool) *AddressRepository {
+func NewAddressRepository(tx pgx.Tx) *AddressRepository {
 	return &AddressRepository{
-		pool: pool,
+		tx: tx,
 	}
 }
 
@@ -23,7 +23,7 @@ func (addressRepository *AddressRepository) Create(ctx context.Context, address 
 			VALUES($1, $2, $3, $4, $5, $6, $7) RETURNING id;
 	`
 
-	err := addressRepository.pool.QueryRow(
+	err := addressRepository.tx.QueryRow(
 		ctx,
 		query,
 		address.Country,

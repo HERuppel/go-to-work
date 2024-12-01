@@ -4,16 +4,16 @@ import (
 	"context"
 	"go-to-work/internal/models"
 
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5"
 )
 
 type AuthRepository struct {
-	pool *pgxpool.Pool
+	tx pgx.Tx
 }
 
-func NewAuthRepository(pool *pgxpool.Pool) *AuthRepository {
+func NewAuthRepository(tx pgx.Tx) *AuthRepository {
 	return &AuthRepository{
-		pool: pool,
+		tx: tx,
 	}
 }
 
@@ -23,7 +23,7 @@ func (authRepository *AuthRepository) SignUp(ctx context.Context, user models.Us
 			VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id;
 	`
 
-	err := authRepository.pool.QueryRow(
+	err := authRepository.tx.QueryRow(
 		ctx,
 		query,
 		user.Name,
