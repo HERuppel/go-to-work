@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"go-to-work/internal/config"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -34,7 +35,9 @@ func ValidateToken(tokenString string) error {
 	return errors.New("INVALID_TOKEN")
 }
 
-func ExtractUserId(tokenString string) (uint64, error) {
+func ExtractUserId(authHeader string) (uint64, error) {
+	tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+
 	token, err := jwt.Parse(tokenString, getVerificationKey)
 	if err != nil {
 		return 0, err

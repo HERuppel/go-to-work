@@ -1,9 +1,9 @@
 package controllers
 
 import (
+	"go-to-work/internal/authentication"
 	usecases "go-to-work/internal/useCases"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -19,8 +19,9 @@ func NewUserController(userUseCase *usecases.UserUseCase) *UserController {
 }
 
 func (userController *UserController) GetUser(ctx *gin.Context) {
-	idParam := ctx.Param("id")
-	id, err := strconv.ParseUint(idParam, 10, 64)
+	authHeader := ctx.GetHeader("Authorization")
+	id, err := authentication.ExtractUserId(authHeader)
+
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "INVALID_USER_ID"})
 		return

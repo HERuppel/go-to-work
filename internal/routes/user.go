@@ -2,12 +2,14 @@ package routes
 
 import (
 	"go-to-work/internal/controllers"
+	"go-to-work/internal/middlewares"
 
 	"github.com/gin-gonic/gin"
 )
 
 func addUserRoutes(rg *gin.RouterGroup, userController *controllers.UserController) {
-	auth := rg.Group("/user")
+	user := rg.Group("/user")
+	user.Use(middlewares.Authenticate())
 
-	auth.GET("/:id", userController.GetUser)
+	user.GET("/", userController.GetUser)
 }
