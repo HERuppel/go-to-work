@@ -2,7 +2,9 @@ package usecases
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"go-to-work/internal/authentication"
 	"go-to-work/internal/models"
 	"go-to-work/internal/repositories"
 	"go-to-work/internal/security"
@@ -75,4 +77,41 @@ func (authUseCase *AuthUseCase) SignUp(ctx context.Context, user models.User) (m
 	}
 
 	return createdUser, nil
+}
+
+func (authUseCase *AuthUseCase) SignIn(ctx context.Context, email, password string) (models.User, string, error) {
+	tx, err := authUseCase.pool.Begin(ctx)
+	if err != nil {
+		return models.User{}, "", fmt.Errorf("ERROR_STARTING_TRANSACTION: %w", err)
+	}
+
+	defer func() {
+		if err != nil {
+			if rollbackErr := tx.Rollback(ctx); rollbackErr != nil {
+				fmt.Println("ROLLBACK_ERROR")
+			}
+		} else {
+			if commitErr := tx.Commit(ctx); commitErr != nil {
+				fmt.Println("COMMIT_ERROR")
+			}
+		}
+	}()
+
+	userRepository := repositories.NewUserRepository(tx)
+
+	userToCompare, err := userRepository.GetUserByEmail(ctx, email)
+	if err != nil {
+		return models.User{}, "", err
+	}
+
+	if err = security.VerifyPassword(userToCompare.Password, password); err != nil {
+		return models.User{}, "", errors.New("WRONG_PASSWORD_OR_EMAIL")
+	}
+
+	authToken, err := authentication.CreateToken(userToCompare.ID)
+	if err != nil {
+		return models.User{}, "", errors.New("INTERNAL_ERROR")
+	}
+
+	return *userToCompare, authToken, nil
 }

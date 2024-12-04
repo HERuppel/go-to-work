@@ -10,4 +10,5 @@ func addAuthRoutes(rg *gin.RouterGroup, authController *controllers.AuthControll
 	auth := rg.Group("/auth")
 
 	auth.POST("/signup", authController.SignUp)
+	auth.POST("/signin", authController.SignIn)
 }
