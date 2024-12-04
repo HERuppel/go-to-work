@@ -60,7 +60,7 @@ func (authUseCase *AuthUseCase) SignUp(ctx context.Context, user models.User) (m
 
 	pinCode := security.GeneratePinCode()
 
-	user.PinCode = strconv.Itoa(pinCode)
+	*user.PinCode = strconv.Itoa(pinCode)
 
 	user.Address, err = addressRepository.Create(ctx, user.Address)
 	if err != nil {
@@ -72,7 +72,7 @@ func (authUseCase *AuthUseCase) SignUp(ctx context.Context, user models.User) (m
 		return models.User{}, err
 	}
 
-	if err = authUseCase.emailService.SendConfirmEmail(createdUser.Email, createdUser.Name, createdUser.PinCode); err != nil {
+	if err = authUseCase.emailService.SendConfirmEmail(createdUser.Email, createdUser.Name, *createdUser.PinCode); err != nil {
 		return models.User{}, err
 	}
 
@@ -102,6 +102,10 @@ func (authUseCase *AuthUseCase) SignIn(ctx context.Context, email, password stri
 	userToCompare, err := userRepository.GetUserByEmail(ctx, email)
 	if err != nil {
 		return models.User{}, "", err
+	}
+
+	if userToCompare.PinCode != nil {
+		return models.User{}, "", errors.New("NEED_TO_CONFIRM_ACCOUNT")
 	}
 
 	if err = security.VerifyPassword(userToCompare.Password, password); err != nil {

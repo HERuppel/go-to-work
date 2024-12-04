@@ -22,7 +22,7 @@ type User struct {
 	Password  string    `json:"password,omitempty"`
 	Cpf       string    `json:"cpf"`
 	Birthdate time.Time `json:"birthdate"`
-	PinCode   string    `json:"pin_code,omitempty"`
+	PinCode   *string   `json:"pin_code,omitempty"`
 	Role      RoleType  `json:"role"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
