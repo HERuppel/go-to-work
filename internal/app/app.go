@@ -4,6 +4,7 @@ import (
 	"go-to-work/internal/config"
 	"go-to-work/internal/controllers"
 	"go-to-work/internal/database"
+	"go-to-work/internal/repositories"
 	"go-to-work/internal/services"
 	usecases "go-to-work/internal/useCases"
 	"log"
@@ -35,12 +36,16 @@ func NewAppContainer() (*AppContainer, error) {
 		templatePath,
 	)
 
+	authRepository := repositories.NewAuthRepository()
+	addressRepository := repositories.NewAddressRepository()
+	userRepository := repositories.NewUserRepository()
+
 	// Auth
-	authUseCase := usecases.NewAuthUseCase(pool, emailService)
+	authUseCase := usecases.NewAuthUseCase(pool, authRepository, addressRepository, userRepository, emailService)
 	authController := controllers.NewAuthController(authUseCase)
 
 	// User
-	userUseCase := usecases.NewUserUseCase(pool)
+	userUseCase := usecases.NewUserUseCase(pool, userRepository)
 	userController := controllers.NewUserController(userUseCase)
 
 	return &AppContainer{

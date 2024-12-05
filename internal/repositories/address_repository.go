@@ -7,23 +7,23 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-type AddressRepository struct {
-	tx pgx.Tx
+type AddressRepositoryInterface interface {
+	Create(ctx context.Context, tx pgx.Tx, address models.Address) (models.Address, error)
 }
 
-func NewAddressRepository(tx pgx.Tx) *AddressRepository {
-	return &AddressRepository{
-		tx: tx,
-	}
+type AddressRepository struct{}
+
+func NewAddressRepository() AddressRepositoryInterface {
+	return &AddressRepository{}
 }
 
-func (addressRepository *AddressRepository) Create(ctx context.Context, address models.Address) (models.Address, error) {
+func (addressRepository *AddressRepository) Create(ctx context.Context, tx pgx.Tx, address models.Address) (models.Address, error) {
 	query := `
 		INSERT INTO addresses(country, uf, city, street, zipcode, district, complement)
 			VALUES($1, $2, $3, $4, $5, $6, $7) RETURNING id;
 	`
 
-	err := addressRepository.tx.QueryRow(
+	err := tx.QueryRow(
 		ctx,
 		query,
 		address.Country,

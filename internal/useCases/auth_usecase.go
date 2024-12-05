@@ -15,14 +15,20 @@ import (
 )
 
 type AuthUseCase struct {
-	pool         *pgxpool.Pool
-	emailService services.EmailService
+	pool              *pgxpool.Pool
+	authRepository    repositories.AuthRepositoryInterface
+	addressRepository repositories.AddressRepositoryInterface
+	userRepository    repositories.UserRepositoryInterface
+	emailService      services.EmailService
 }
 
-func NewAuthUseCase(pool *pgxpool.Pool, emailService services.EmailService) *AuthUseCase {
+func NewAuthUseCase(pool *pgxpool.Pool, authRepository repositories.AuthRepositoryInterface, addressRepository repositories.AddressRepositoryInterface, userRepository repositories.UserRepositoryInterface, emailService services.EmailService) *AuthUseCase {
 	return &AuthUseCase{
-		pool:         pool,
-		emailService: emailService,
+		pool:              pool,
+		authRepository:    authRepository,
+		addressRepository: addressRepository,
+		userRepository:    userRepository,
+		emailService:      emailService,
 	}
 }
 
@@ -44,9 +50,6 @@ func (authUseCase *AuthUseCase) SignUp(ctx context.Context, user models.User) (m
 		}
 	}()
 
-	authRepository := repositories.NewAuthRepository(tx)
-	addressRepository := repositories.NewAddressRepository(tx)
-
 	if err := user.Validate(); err != nil {
 		return models.User{}, err
 	}
@@ -60,14 +63,16 @@ func (authUseCase *AuthUseCase) SignUp(ctx context.Context, user models.User) (m
 
 	pinCode := security.GeneratePinCode()
 
+	user.PinCode = new(string)
+
 	*user.PinCode = strconv.Itoa(pinCode)
 
-	user.Address, err = addressRepository.Create(ctx, user.Address)
+	user.Address, err = authUseCase.addressRepository.Create(ctx, tx, user.Address)
 	if err != nil {
 		return models.User{}, err
 	}
 
-	createdUser, err := authRepository.SignUp(ctx, user)
+	createdUser, err := authUseCase.authRepository.SignUp(ctx, tx, user)
 	if err != nil {
 		return models.User{}, err
 	}
@@ -97,9 +102,7 @@ func (authUseCase *AuthUseCase) SignIn(ctx context.Context, email, password stri
 		}
 	}()
 
-	userRepository := repositories.NewUserRepository(tx)
-
-	userToCompare, err := userRepository.GetUserByEmail(ctx, email)
+	userToCompare, err := authUseCase.userRepository.GetUserByEmail(ctx, tx, email)
 	if err != nil {
 		return models.User{}, "", err
 	}
@@ -138,19 +141,20 @@ func (authUseCase *AuthUseCase) ConfirmAccount(ctx context.Context, email, pinCo
 		}
 	}()
 
-	userRepository := repositories.NewUserRepository(tx)
-	authRepository := repositories.NewAuthRepository(tx)
-
-	user, err := userRepository.GetUserByEmail(ctx, email)
+	user, err := authUseCase.userRepository.GetUserByEmail(ctx, tx, email)
 	if err != nil {
 		return err
+	}
+
+	if user.PinCode == nil {
+		return errors.New("ACCOUNT_ALREADY_CONFIRMED")
 	}
 
 	if *user.PinCode != pinCode {
 		return errors.New("INVALID_PIN_CODE")
 	}
 
-	err = authRepository.ConfirmAccount(ctx, email)
+	err = authUseCase.authRepository.ConfirmAccount(ctx, tx, email)
 	if err != nil {
 		return errors.New("INTERNAL_ERROR")
 	}

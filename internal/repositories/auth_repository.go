@@ -8,23 +8,25 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
+type AuthRepositoryInterface interface {
+	SignUp(ctx context.Context, tx pgx.Tx, user models.User) (models.User, error)
+	ConfirmAccount(ctx context.Context, tx pgx.Tx, email string) error
+}
+
 type AuthRepository struct {
-	tx pgx.Tx
 }
 
-func NewAuthRepository(tx pgx.Tx) *AuthRepository {
-	return &AuthRepository{
-		tx: tx,
-	}
+func NewAuthRepository() *AuthRepository {
+	return &AuthRepository{}
 }
 
-func (authRepository *AuthRepository) SignUp(ctx context.Context, user models.User) (models.User, error) {
+func (authRepository *AuthRepository) SignUp(ctx context.Context, tx pgx.Tx, user models.User) (models.User, error) {
 	query := `
 		INSERT INTO users (name, email, password, cpf, birthdate, pin_code, address_id, role)
 			VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id;
 	`
 
-	err := authRepository.tx.QueryRow(
+	err := tx.QueryRow(
 		ctx,
 		query,
 		user.Name,
@@ -43,14 +45,14 @@ func (authRepository *AuthRepository) SignUp(ctx context.Context, user models.Us
 	return user, nil
 }
 
-func (authRepository *AuthRepository) ConfirmAccount(ctx context.Context, email string) error {
+func (authRepository *AuthRepository) ConfirmAccount(ctx context.Context, tx pgx.Tx, email string) error {
 	query := `
 		UPDATE users
 			SET pin_code = NULL
 		WHERE email = $1;
 	`
 
-	cmdTag, err := authRepository.tx.Exec(ctx, query, email)
+	cmdTag, err := tx.Exec(ctx, query, email)
 
 	if err != nil {
 		return err

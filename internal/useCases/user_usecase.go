@@ -10,12 +10,14 @@ import (
 )
 
 type UserUseCase struct {
-	pool *pgxpool.Pool
+	pool           *pgxpool.Pool
+	userRepository repositories.UserRepositoryInterface
 }
 
-func NewUserUseCase(pool *pgxpool.Pool) *UserUseCase {
+func NewUserUseCase(pool *pgxpool.Pool, userRepository repositories.UserRepositoryInterface) *UserUseCase {
 	return &UserUseCase{
-		pool: pool,
+		pool:           pool,
+		userRepository: userRepository,
 	}
 }
 
@@ -36,9 +38,8 @@ func (userUseCase *UserUseCase) GetUser(ctx context.Context, id uint64) (*models
 			}
 		}
 	}()
-	userRepository := repositories.NewUserRepository(tx)
 
-	user, err := userRepository.GetUser(ctx, id)
+	user, err := userUseCase.userRepository.GetUser(ctx, tx, id)
 	if err != nil {
 		return nil, err
 	}

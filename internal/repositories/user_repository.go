@@ -8,17 +8,19 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
+type UserRepositoryInterface interface {
+	GetUser(ctx context.Context, tx pgx.Tx, id uint64) (*models.User, error)
+	GetUserByEmail(ctx context.Context, tx pgx.Tx, email string) (*models.User, error)
+}
+
 type UserRepository struct {
-	tx pgx.Tx
 }
 
-func NewUserRepository(tx pgx.Tx) *UserRepository {
-	return &UserRepository{
-		tx: tx,
-	}
+func NewUserRepository() UserRepositoryInterface {
+	return &UserRepository{}
 }
 
-func (userRepository *UserRepository) GetUser(ctx context.Context, id uint64) (*models.User, error) {
+func (userRepository *UserRepository) GetUser(ctx context.Context, tx pgx.Tx, id uint64) (*models.User, error) {
 	var user models.User
 
 	query := `SELECT 
@@ -41,7 +43,7 @@ func (userRepository *UserRepository) GetUser(ctx context.Context, id uint64) (*
 		FROM users u 
 		INNER JOIN addresses a ON u.address_id = a.id 
 		WHERE u.id = $1`
-	err := userRepository.tx.QueryRow(ctx, query, id).Scan(
+	err := tx.QueryRow(ctx, query, id).Scan(
 		&user.ID,
 		&user.Name,
 		&user.Email,
@@ -70,7 +72,7 @@ func (userRepository *UserRepository) GetUser(ctx context.Context, id uint64) (*
 	return &user, nil
 }
 
-func (userRepository *UserRepository) GetUserByEmail(ctx context.Context, email string) (*models.User, error) {
+func (userRepository *UserRepository) GetUserByEmail(ctx context.Context, tx pgx.Tx, email string) (*models.User, error) {
 	var user models.User
 
 	query := `SELECT 
@@ -95,7 +97,7 @@ func (userRepository *UserRepository) GetUserByEmail(ctx context.Context, email 
 		FROM users u 
 		INNER JOIN addresses a ON u.address_id = a.id 
 		WHERE u.email = $1`
-	err := userRepository.tx.QueryRow(ctx, query, email).Scan(
+	err := tx.QueryRow(ctx, query, email).Scan(
 		&user.ID,
 		&user.Name,
 		&user.Email,
