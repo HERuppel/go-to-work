@@ -46,13 +46,13 @@ func (authController *AuthController) SignIn(ctx *gin.Context) {
 		return
 	}
 
-	user, authToken, err := authController.authUseCase.SignIn(ctx, credentials.Email, credentials.Password)
+	signInResponse, err := authController.authUseCase.SignIn(ctx, credentials.Email, credentials.Password)
 	if err != nil {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"user": user, "authToken": authToken})
+	ctx.JSON(http.StatusOK, gin.H{"user": signInResponse.User, "authToken": signInResponse.AuthToken})
 }
 
 func (authController *AuthController) ConfirmAccount(ctx *gin.Context) {

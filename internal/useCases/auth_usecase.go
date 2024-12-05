@@ -3,14 +3,15 @@ package usecases
 import (
 	"context"
 	"errors"
-	"fmt"
 	"go-to-work/internal/authentication"
+	"go-to-work/internal/database"
 	"go-to-work/internal/models"
 	"go-to-work/internal/repositories"
 	"go-to-work/internal/security"
 	"go-to-work/internal/services"
 	"strconv"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -32,131 +33,112 @@ func NewAuthUseCase(pool *pgxpool.Pool, authRepository repositories.AuthReposito
 	}
 }
 
+type SignInResponse struct {
+	User      models.User `json:"user"`
+	AuthToken string      `json:"authToken"`
+}
+
 func (authUseCase *AuthUseCase) SignUp(ctx context.Context, user models.User) (models.User, error) {
-	tx, err := authUseCase.pool.Begin(ctx)
-	if err != nil {
-		return models.User{}, fmt.Errorf("ERROR_STARTING_TRANSACTION: %w", err)
-	}
-
-	defer func() {
-		if err != nil {
-			if rollbackErr := tx.Rollback(ctx); rollbackErr != nil {
-				fmt.Println("ROLLBACK_ERROR")
-			}
-		} else {
-			if commitErr := tx.Commit(ctx); commitErr != nil {
-				fmt.Println("COMMIT_ERROR")
-			}
+	createdUser, err := database.WithTransaction(authUseCase.pool, ctx, func(tx pgx.Tx) (models.User, error) {
+		if err := user.Validate(); err != nil {
+			return models.User{}, err
 		}
-	}()
 
-	if err := user.Validate(); err != nil {
-		return models.User{}, err
-	}
+		hashedPassword, err := security.Hash(user.Password)
+		if err != nil {
+			return models.User{}, err
+		}
 
-	hashedPassword, err := security.Hash(user.Password)
+		user.Password = string(hashedPassword)
+
+		pinCode := security.GeneratePinCode()
+
+		user.PinCode = new(string)
+
+		*user.PinCode = strconv.Itoa(pinCode)
+
+		user.Address, err = authUseCase.addressRepository.Create(ctx, tx, user.Address)
+		if err != nil {
+			return models.User{}, err
+		}
+
+		createdUser, err := authUseCase.authRepository.SignUp(ctx, tx, user)
+		if err != nil {
+			return models.User{}, err
+		}
+
+		if err = authUseCase.emailService.SendConfirmEmail(createdUser.Email, createdUser.Name, *createdUser.PinCode); err != nil {
+			return models.User{}, err
+		}
+
+		return createdUser, nil
+	})
+
 	if err != nil {
-		return models.User{}, err
-	}
-
-	user.Password = string(hashedPassword)
-
-	pinCode := security.GeneratePinCode()
-
-	user.PinCode = new(string)
-
-	*user.PinCode = strconv.Itoa(pinCode)
-
-	user.Address, err = authUseCase.addressRepository.Create(ctx, tx, user.Address)
-	if err != nil {
-		return models.User{}, err
-	}
-
-	createdUser, err := authUseCase.authRepository.SignUp(ctx, tx, user)
-	if err != nil {
-		return models.User{}, err
-	}
-
-	if err = authUseCase.emailService.SendConfirmEmail(createdUser.Email, createdUser.Name, *createdUser.PinCode); err != nil {
 		return models.User{}, err
 	}
 
 	return createdUser, nil
 }
 
-func (authUseCase *AuthUseCase) SignIn(ctx context.Context, email, password string) (models.User, string, error) {
-	tx, err := authUseCase.pool.Begin(ctx)
-	if err != nil {
-		return models.User{}, "", fmt.Errorf("ERROR_STARTING_TRANSACTION: %w", err)
-	}
-
-	defer func() {
+func (authUseCase *AuthUseCase) SignIn(ctx context.Context, email, password string) (SignInResponse, error) {
+	user, err := database.WithTransaction(authUseCase.pool, ctx, func(tx pgx.Tx) (SignInResponse, error) {
+		userToCompare, err := authUseCase.userRepository.GetUserByEmail(ctx, tx, email)
 		if err != nil {
-			if rollbackErr := tx.Rollback(ctx); rollbackErr != nil {
-				fmt.Println("ROLLBACK_ERROR")
-			}
-		} else {
-			if commitErr := tx.Commit(ctx); commitErr != nil {
-				fmt.Println("COMMIT_ERROR")
-			}
+			return SignInResponse{}, err
 		}
-	}()
 
-	userToCompare, err := authUseCase.userRepository.GetUserByEmail(ctx, tx, email)
+		if userToCompare.PinCode != nil {
+			return SignInResponse{}, errors.New("NEED_TO_CONFIRM_ACCOUNT")
+		}
+
+		if err = security.VerifyPassword(userToCompare.Password, password); err != nil {
+			return SignInResponse{}, errors.New("WRONG_PASSWORD_OR_EMAIL")
+		}
+
+		authToken, err := authentication.CreateToken(userToCompare.ID)
+		if err != nil {
+			return SignInResponse{}, errors.New("INTERNAL_ERROR")
+		}
+
+		return SignInResponse{
+			User:      *userToCompare,
+			AuthToken: authToken,
+		}, nil
+	})
+
 	if err != nil {
-		return models.User{}, "", err
+		return SignInResponse{}, err
 	}
 
-	if userToCompare.PinCode != nil {
-		return models.User{}, "", errors.New("NEED_TO_CONFIRM_ACCOUNT")
-	}
-
-	if err = security.VerifyPassword(userToCompare.Password, password); err != nil {
-		return models.User{}, "", errors.New("WRONG_PASSWORD_OR_EMAIL")
-	}
-
-	authToken, err := authentication.CreateToken(userToCompare.ID)
-	if err != nil {
-		return models.User{}, "", errors.New("INTERNAL_ERROR")
-	}
-
-	return *userToCompare, authToken, nil
+	return user, nil
 }
 
 func (authUseCase *AuthUseCase) ConfirmAccount(ctx context.Context, email, pinCode string) error {
-	tx, err := authUseCase.pool.Begin(ctx)
-	if err != nil {
-		return fmt.Errorf("ERROR_STARTING_TRANSACTION: %w", err)
-	}
-
-	defer func() {
+	_, err := database.WithTransaction(authUseCase.pool, ctx, func(tx pgx.Tx) (interface{}, error) {
+		user, err := authUseCase.userRepository.GetUserByEmail(ctx, tx, email)
 		if err != nil {
-			if rollbackErr := tx.Rollback(ctx); rollbackErr != nil {
-				fmt.Println("ROLLBACK_ERROR")
-			}
-		} else {
-			if commitErr := tx.Commit(ctx); commitErr != nil {
-				fmt.Println("COMMIT_ERROR")
-			}
+			return nil, err
 		}
-	}()
 
-	user, err := authUseCase.userRepository.GetUserByEmail(ctx, tx, email)
+		if user.PinCode == nil {
+			return nil, errors.New("ACCOUNT_ALREADY_CONFIRMED")
+		}
+
+		if *user.PinCode != pinCode {
+			return nil, errors.New("INVALID_PIN_CODE")
+		}
+
+		err = authUseCase.authRepository.ConfirmAccount(ctx, tx, email)
+		if err != nil {
+			return nil, errors.New("INTERNAL_ERROR")
+		}
+
+		return nil, nil
+	})
+
 	if err != nil {
 		return err
-	}
-
-	if user.PinCode == nil {
-		return errors.New("ACCOUNT_ALREADY_CONFIRMED")
-	}
-
-	if *user.PinCode != pinCode {
-		return errors.New("INVALID_PIN_CODE")
-	}
-
-	err = authUseCase.authRepository.ConfirmAccount(ctx, tx, email)
-	if err != nil {
-		return errors.New("INTERNAL_ERROR")
 	}
 
 	return nil

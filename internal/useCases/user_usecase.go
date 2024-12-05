@@ -2,10 +2,11 @@ package usecases
 
 import (
 	"context"
-	"fmt"
+	"go-to-work/internal/database"
 	"go-to-work/internal/models"
 	"go-to-work/internal/repositories"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -22,26 +23,17 @@ func NewUserUseCase(pool *pgxpool.Pool, userRepository repositories.UserReposito
 }
 
 func (userUseCase *UserUseCase) GetUser(ctx context.Context, id uint64) (*models.User, error) {
-	tx, err := userUseCase.pool.Begin(ctx)
-	if err != nil {
-		return &models.User{}, fmt.Errorf("ERROR_STARTING_TRANSACTION: %w", err)
-	}
-
-	defer func() {
+	user, err := database.WithTransaction(userUseCase.pool, ctx, func(tx pgx.Tx) (*models.User, error) {
+		user, err := userUseCase.userRepository.GetUser(ctx, tx, id)
 		if err != nil {
-			if rollbackErr := tx.Rollback(ctx); rollbackErr != nil {
-				fmt.Println("ROLLBACK_ERROR")
-			}
-		} else {
-			if commitErr := tx.Commit(ctx); commitErr != nil {
-				fmt.Println("COMMIT_ERROR")
-			}
+			return nil, err
 		}
-	}()
 
-	user, err := userUseCase.userRepository.GetUser(ctx, tx, id)
+		return user, nil
+	})
+
 	if err != nil {
-		return nil, err
+		return &models.User{}, nil
 	}
 
 	return user, nil
