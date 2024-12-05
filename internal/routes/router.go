@@ -3,6 +3,7 @@ package routes
 import (
 	"go-to-work/internal/config"
 	"go-to-work/internal/controllers"
+	"go-to-work/internal/middlewares"
 
 	"github.com/gin-gonic/gin"
 )
@@ -16,6 +17,9 @@ var router = gin.Default()
 
 func Initialize(container *ControllerContainer) {
 	getRoutes(container)
+
+	router.Use(middlewares.CORS())
+
 	router.Run(":" + config.Port)
 }
 
