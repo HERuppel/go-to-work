@@ -1,0 +1,8 @@
+services:
+  - name: go-to-work
+    type: web
+    env: docker
+    region: oregon
+    dockerComposePath: ./docker-compose.yml
+    plan: free
+    healthCheckPath: /
