@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"errors"
 	"go-to-work/internal/models"
 
 	"github.com/jackc/pgx/v5"
@@ -40,4 +41,24 @@ func (authRepository *AuthRepository) SignUp(ctx context.Context, user models.Us
 	}
 
 	return user, nil
+}
+
+func (authRepository *AuthRepository) ConfirmAccount(ctx context.Context, email string) error {
+	query := `
+		UPDATE users
+			SET pin_code = NULL
+		WHERE email = $1;
+	`
+
+	cmdTag, err := authRepository.tx.Exec(ctx, query, email)
+
+	if err != nil {
+		return err
+	}
+
+	if cmdTag.RowsAffected() == 0 {
+		return errors.New("FAILED_TO_UPDATED")
+	}
+
+	return nil
 }

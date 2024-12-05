@@ -119,3 +119,41 @@ func (authUseCase *AuthUseCase) SignIn(ctx context.Context, email, password stri
 
 	return *userToCompare, authToken, nil
 }
+
+func (authUseCase *AuthUseCase) ConfirmAccount(ctx context.Context, email, pinCode string) error {
+	tx, err := authUseCase.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("ERROR_STARTING_TRANSACTION: %w", err)
+	}
+
+	defer func() {
+		if err != nil {
+			if rollbackErr := tx.Rollback(ctx); rollbackErr != nil {
+				fmt.Println("ROLLBACK_ERROR")
+			}
+		} else {
+			if commitErr := tx.Commit(ctx); commitErr != nil {
+				fmt.Println("COMMIT_ERROR")
+			}
+		}
+	}()
+
+	userRepository := repositories.NewUserRepository(tx)
+	authRepository := repositories.NewAuthRepository(tx)
+
+	user, err := userRepository.GetUserByEmail(ctx, email)
+	if err != nil {
+		return err
+	}
+
+	if *user.PinCode != pinCode {
+		return errors.New("INVALID_PIN_CODE")
+	}
+
+	err = authRepository.ConfirmAccount(ctx, email)
+	if err != nil {
+		return errors.New("INTERNAL_ERROR")
+	}
+
+	return nil
+}

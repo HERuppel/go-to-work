@@ -11,4 +11,5 @@ func addAuthRoutes(rg *gin.RouterGroup, authController *controllers.AuthControll
 
 	auth.POST("/signup", authController.SignUp)
 	auth.POST("/signin", authController.SignIn)
+	auth.POST("/confirm-account", authController.ConfirmAccount)
 }
