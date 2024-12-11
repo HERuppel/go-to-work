@@ -27,7 +27,7 @@ func (userController *UserController) GetUser(ctx *gin.Context) {
 		return
 	}
 
-	user, err := userController.userUseCase.GetUser(ctx.Request.Context(), id)
+	user, err := userController.userUseCase.GetUser(ctx, id)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "INTERNAL_ERROR"})
 		return
