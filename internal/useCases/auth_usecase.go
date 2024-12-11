@@ -88,6 +88,10 @@ func (authUseCase *AuthUseCase) SignIn(ctx context.Context, email, password stri
 			return SignInResponse{}, err
 		}
 
+		if userToCompare == nil {
+			return SignInResponse{}, errors.New("USER_NOT_FOUND")
+		}
+
 		if userToCompare.PinCode != nil {
 			return SignInResponse{}, errors.New("NEED_TO_CONFIRM_ACCOUNT")
 		}
