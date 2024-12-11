@@ -14,6 +14,7 @@ import (
 type AppContainer struct {
 	UserController *controllers.UserController
 	AuthController *controllers.AuthController
+	JobController  *controllers.JobController
 }
 
 func NewAppContainer() (*AppContainer, error) {
@@ -48,8 +49,14 @@ func NewAppContainer() (*AppContainer, error) {
 	userUseCase := usecases.NewUserUseCase(pool, userRepository)
 	userController := controllers.NewUserController(userUseCase)
 
+	// Job
+	jobRepository := repositories.NewJobRepository()
+	jobUseCase := usecases.NewJobUseCase(pool, jobRepository)
+	jobController := controllers.NewJobController(jobUseCase)
+
 	return &AppContainer{
 		UserController: userController,
 		AuthController: authController,
+		JobController:  jobController,
 	}, nil
 }

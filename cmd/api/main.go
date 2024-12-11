@@ -18,6 +18,7 @@ func main() {
 	controllerContainer := &routes.ControllerContainer{
 		UserController: container.UserController,
 		AuthController: container.AuthController,
+		JobController:  container.JobController,
 	}
 
 	routes.Initialize(controllerContainer)

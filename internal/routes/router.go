@@ -11,6 +11,7 @@ import (
 type ControllerContainer struct {
 	UserController *controllers.UserController
 	AuthController *controllers.AuthController
+	JobController  *controllers.JobController
 }
 
 var router = gin.Default()
@@ -28,4 +29,5 @@ func getRoutes(container *ControllerContainer) {
 
 	addAuthRoutes(v1, container.AuthController)
 	addUserRoutes(v1, container.UserController)
+	addJobRoutes(v1, container.JobController)
 }
